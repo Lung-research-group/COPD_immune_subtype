@@ -1,3 +1,39 @@
+#we will prepare downsampled matrix for cibersortx
+library(dplyr)
+library(reshape2)
+library(Seurat)
+library(stringr)
+library(ggplot2)
+
+#prepare cibersortx reference  from GSE136831----------------------------------------------------
+datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
+load(paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
+
+selection_immune <- c("cMonocyte","ncMonocyte", "Macrophage","Macrophage_Alveolar",
+                      "Mast","cDC1","cDC2","DC_Mature","pDC","NK","ILC_A", "ILC_B", "DC_Langerhans",
+                      "B","T_Cytotoxic","T_Regulatory", "B_Plasma", "T")
+
+#subset only to include immune cells
+kaminski_new <- subset(kaminski_new, Manuscript_Identity %in% c(selection_immune))
+
+#filter out ILC and langerhans
+Idents(kaminski_new) <- kaminski_new$new_ID
+
+sc_data <- subset(kaminski_new, Disease_Identity %in% c("Control", "COPD")) #DC langerhans only 19 therefore we excluded them immediately , change to COPD, Control, and COPD and control
+
+table(sc_data$new_ID)
+Idents(sc_data) <- sc_data$new_ID
+temp <- subset(sc_data, downsample=50) #subset 50 cells per celltypes
+
+table(temp$new_ID)
+temp <- JoinLayers(temp)
+dat <- temp@assays[["RNA"]]@layers[["counts"]]
+dat <- as.matrix(dat)
+colnames(dat) <- temp$new_ID
+rownames(dat) <- rownames(temp)
+write.table(dat,"kaminski_sub50percelltype_pooled_COPD_Control.txt",row.names=TRUE,sep="\t", quote = FALSE)
+
+#process the cibersortx results ------------------
 #directories
 plotdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/output/plots/"
 datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/input/"
@@ -52,12 +88,11 @@ dt <- as.data.frame(sapply(pop, function(num) log10(num+0.001)))
 rownames(dt) <- rownames(pop)
 
 # patient level data  -----------------------------------------
-data <- readRDS(paste0(datainputdir, "target_data_harmonized_ver02.RDS"))
-
+data <- read.csv(file="/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/metadata_nanostring.csv")
 #combine the metadata from original nanostring
-patient <- cbind.data.frame("patient"=data@phenoData@data[["patient_ID"]],
-                            "location"=data@phenoData@data[["location"]]) # addlocation
-rownames(patient) <- colnames(data)
+patient <- cbind.data.frame("patient"=data[["patient_ID"]],
+                            "location"=data[["location"]]) # addlocation
+rownames(patient) <- data$X
 patient <- patient[which(rownames(patient) %in% rownames(pop)),]
 
 #filter the ROIs, here we only take parenchyma ROIs
@@ -77,9 +112,9 @@ temp <- as.data.frame(str_split_fixed(melt$patient_variable, "_", 2))
 melt$patient <- temp$V1
 melt$variable <- temp$V2
 
-meta <- cbind.data.frame("gold_broad"=data@phenoData@data[["gold_broad"]], 
-                         "patient"=data@phenoData@data[["patient_ID"]], 
-                         "emphysema"=data@phenoData@data[["emphysema_whole"]])
+meta <- cbind.data.frame("gold_broad"=data[["gold_broad"]], 
+                         "patient"=data[["patient_ID"]], 
+                         "emphysema"=data[["emphysema_whole"]])
 
 meta <-unique(meta)
 
@@ -128,12 +163,12 @@ cluster2 <- dd$patient[which(dd[, "cluster"] %in% c(1))] # we swap the naming to
 cluster1 <- dd$patient[which(dd[, "cluster"] %in% c(2))]
 include <- c(cluster1, cluster2)
 
-# visualisation --------------------------------
-## PCA (fig5B) -----------------------------
+## bi-plot PCA (fig5B) -----------------------------
 PCA_modelobject <- prcomp(df[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4")),c(4:18)], scale=T, center=T)
 summary(PCA_modelobject)
 
 plotdata_cPCA <- data.frame(PCA_modelobject$x[,1:3])
+
 #we take patients ID from MIC.R (available in PC)
 GOLD12 <- unique(df$patient[which(df$gold_broad %in% c("GOLD1-2"))])
 plotdata_cPCA$patient <- df$patient[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4"))]
@@ -141,7 +176,6 @@ plotdata_cPCA$subgroup <- ifelse(plotdata_cPCA$patient %in% cluster2, "cluster_2
 plotdata_cPCA$gold_broad <- ifelse(plotdata_cPCA$patient %in% GOLD12, "GOLD1-2","GOLD3-4")
 pov <- PCA_modelobject$sdev^2/sum(PCA_modelobject$sdev^2)
 barplot(pov)
-
 theme_journal <- theme(axis.line.x = element_line(color="black", size = 0.5),
                        axis.line.y = element_line(color="black", size = 0.5))+
   theme(axis.text.x = element_text(colour = "black", size = 16, angle = 0, hjust=1, vjust=1))+
@@ -160,36 +194,6 @@ cols <- c("#CD5C5C","#791812")
 names(cols) <- c("GOLD1-2","GOLD3-4")
 library(RColorBrewer)
 
-
-a <- ggplot(data = plotdata_cPCA, 
-            aes(x=PC1,y=PC2, color = subgroup))+
-  geom_point(size=6)+ xlab(paste0("PC1 ", round(pov[1]*100, 1), "%"))+ylab(paste0("PC2 ", round(pov[2]*100,1), "%"))+
-  expand_limits(x = mean(plotdata_cPCA[,"PC1"])*1.5) +theme_classic()+
-  theme_journal +theme(panel.grid.major = element_line(color = "light grey",
-                                                       size=0.25,
-                                                       linetype = "dashed"), axis.text.x = element_text(angle = 0))+
-  theme_bw(base_size = 16)+
-  scale_color_manual(values = color, breaks = names(color))+ #+xlim(-5,5)+ylim(-5,5) # we have to always check the limits 
-  theme(legend.position = "bottom")+theme(legend.title = element_blank())
-a
-a_plot <- a+theme(legend.position = "none")
-a_plot
-library(ggplotify)
-library(cowplot)
-legend <- as.ggplot(get_legend(a))
-legend
-ggsave(file=paste0(plotdir, as.character(Sys.Date()),"_", "rev01_postave_COPD_Control_PCA_nanostring_patient_PC1PC2_GOLD34_GOLD12_all_cibersortx_onlyparenchyma.png"), 
-       plot=a_plot,
-       device = "png", units = c("in"), width = 5, height = 5)
-save_plot(filename=paste0(plotdir, as.character(Sys.Date()),"_", "rev01_postave_COPD_Control_PCA_nanostring_patient_PC1PC2_GOLD34_GOLD12_all_cibersortx_onlyparenchyma.png"),
-          plot = a_plot, base_height = 5.25, base_width = 5, dpi = 300)
-
-ggsave(file=paste0(plotdir, as.character(Sys.Date()),"_", "rev_01postave_legend_PCA_nanostring_patient_PC1PC2_GOLD34_GOLD12_all_cibersortx_onlyparenchyma.png"), 
-       plot=legend,
-       device = "png", units = c("in"), width = 5, height = 5)
-
-
-##biplot PCA ---------
 library(ggplot2)
 library(ggpubr)
 theme_set(theme_pubr(base_size=6, border = T, legend = "none"))
@@ -225,97 +229,13 @@ ggsave(paste0(plotdir, "ST__cPCA_biplot_PCA_final2.png"),
        device = png(), width=65, height=70, units = "mm", dpi = 900)
 dev.off()
 
-## heatmap (fig5C) ----------
-features <- colnames(df)[4:18]
-subdataset_map_scaled <- scale(df[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4")),c(4:18)], scale=T, center=T) # scale row of heatmap
-subdataset_map_scaled <- t(scale(t(subdataset_map_scaled),scale = TRUE, center = TRUE)) 
-
-rownames(subdataset_map_scaled) <-df$patient[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4"))]
-library(dendsort)
-sort_hclust <- function(...) as.hclust(dendsort(as.dendrogram(...)))
-mat_cluster_rows <- sort_hclust(hclust(dist(t(subdataset_map_scaled))))
-
-#cluster cols (=samples)
-hclust_dist <- dist(subdataset_map_scaled)
-mat_cluster_cols <- sort_hclust(hclust(hclust_dist))
-
-
-#setting color scale so that it is centered 
-library(RColorBrewer)
-color_palette <- c(rev(colorRampPalette(brewer.pal(9, "Blues"))(48)), "#ffffff", "#ffffff" , 
-                   colorRampPalette(brewer.pal(9, "Reds"))(48))	
-
-min_boundary <- min(subdataset_map_scaled,na.rm=TRUE)
-max_boundary <- max(subdataset_map_scaled,na.rm=TRUE)
-color_breaks <- c(seq(min_boundary, min_boundary/49, -min_boundary/49), 
-                  0, 
-                  seq(max_boundary/49, max_boundary, max_boundary/49)) #asymmetric sclae maxing out contrast for up and down
-#rownames(subdataset_map_scaled) <- c(1:57)
-sample_names <- rownames(subdataset_map_scaled)
-sample_annotation <- df[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4")) ,c("gold_broad","patient", "emphysema")]
-sample_annotation$subgroup <- ifelse(sample_annotation$patient %in% cluster2, "cluster_2","cluster_1")
-
-
-sample_annotation <- as.data.frame(sample_annotation[, c("subgroup","gold_broad")])
-rownames(sample_annotation) <- sample_names
-colnames(sample_annotation) <- c("subgroup", "gold_broad")
-#transform those columns into factors
-#sample_annotation <- data.frame(trimws(apply(sample_annotation,2, as.factor))) #in rare cases apply of as.factor creates preleading spaces, therefore must trim
-#test that rownames are really equal (preprequisite for annotations in heatmap)   all.equal(rownames(subdataset), rownames(sample_annotation))
-sample_annotation$subgroup <- as.factor(sample_annotation$subgroup)
-#sample_annotation$emphysema <- as.factor(sample_annotation$emphysema)
-sample_annotation$gold_broad <- as.factor(sample_annotation$gold_broad)
-#create color codes for each factor in columns in model table and read out of there
-#####Suggestion later improvement: take out color from Excel model_table
-library(RColorBrewer)
-color <- c( "darkred", "salmon")
-names(color) <- c("cluster 1","cluster 2")
-cols <- c("#CD5C5C","#791812")
-names(cols) <- c("GOLD1-2","GOLD3-4")
-
-colors <-brewer.pal(n = 3, name = "Set3")
-names(colors) <- c("none", "moderate", "severe")
-
-annotation_colors <- list(color, cols)
-annotation_column_names <- c("subgroup", "gold_broad")
-names(annotation_colors) <- annotation_column_names
-
-names(annotation_colors[["subgroup"]]) <- c("cluster_1","cluster_2")
-#names(annotation_colors[["emphysema"]]) <-  c("severe", "moderate","none")
-names(annotation_colors[["gold_broad"]]) <-  c("GOLD1-2","GOLD3-4")
-#draw and save heatmap with clustered samples, clustered Parameters
-library(pheatmap)
-
-sample_annotation$gold_broad <- NULL
-annotation_colors[["gold_broad"]] <- NULL
-
-names(annotation_colors[["subgroup"]]) <- ifelse(names(annotation_colors[["subgroup"]]) == "cluster_1", "cluster 1", "cluster 2")
-sample_annotation$subgroup <- ifelse(sample_annotation$subgroup == "cluster_1", "cluster 1", "cluster 2")
-
-heatmap_SPclust <- pheatmap(mat = t(subdataset_map_scaled), scale = "none", 
-                            cluster_row = mat_cluster_rows,cutree_rows = 4, cutree_cols = 2,
-                            cluster_cols = mat_cluster_cols,		#for clustering of samples give cluster object,  switch off to keep samples as sorted without clustering
-                            treeheight_row = 10, treeheight_col = 10,
-                            cellheight = 12, cellwidth = 5,
-                            annotation_col = sample_annotation,  annotation_colors = annotation_colors, 
-                            color = color_palette, breaks = color_breaks,fontsize_row=6.5, fontsize_col = 8,
-                            fontsize = 7, show_colnames = F, angle_col = "90", border_color = FALSE, 
-                            na_col = "white", drop_levels = TRUE, legend = T)
-heatmap_SPclust+theme(legend.position = "bottom")
-
-ggsave(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_heatmap_log10+1__scale_row_column_GOLD12_GOLD34_cibersrty_parenchyma.png"),
-       plot = heatmap_SPclust, device = png(), 
-       width=5, 
-       height=5, 
-       units = "in", dpi = 600, scale = 1)
-dev.off()
-dev.off()
-
 ## violin plots (fig5D) =====
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_new.csv"))
+datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/"
+nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_clinical_data.csv"))
 nnaostring_metadata$X <- NULL
-meta <- cbind.data.frame("LAA950_whole"=data@phenoData@data[["LAA950_whole"]],
-                         "LAA950_lobe"=data@phenoData@data[["LAA950_lobe"]],
+meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
+                         "LAA950_lobe"=data[["LAA950_lobe"]],
+                         "patient"=data[["patient_ID"]])
 
 patient_ID <- unique(meta$patient)
 overlap <- intersect(nnaostring_metadata$patient, meta$patient)
@@ -331,7 +251,6 @@ gold_12 <- merge[which(merge$gold_broad %in% c("GOLD1-2", "GOLD3-4")),-which(col
 gold_12 <- gold_12[which(gold_12$patient %in% include),]
 gold_12 <- unique(gold_12)
 gold_12$status <- ifelse(gold_12$patient %in% cluster2, "cluster_2","cluster_1")
-gold_12$status_gap <-ifelse(gold_12$gold_broad %in% c("GOLD1-2")& gold_12$LAA950_whole >10, "GOLD1-2 progress", "rest")
 
 library(ggpubr)
 library(rstatix)
@@ -407,6 +326,7 @@ p <-ggplot(melt, aes(x=status, y=value)) +
 p
 p <- p+theme(legend.position = "none")
 p
+
 library(cowplot)
 save_plot(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_GOLDall_ p value_individual analysis_cibersortx_parenchyma_publication",".png"),
           plot =p , base_height = 5.25, base_width = 12.5, dpi = 600)
@@ -434,13 +354,14 @@ p
 save_plot(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_GOLDall_ p value_individual analysis_cibersortx_parenchyma_publication_all",".png"),
           plot =p , base_height = 5.25*4, base_width = 13, dpi = 600)
 
-#ggplot2::last_plot()
 ## bar chart (fig5E) -------------------
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_new.csv"))
+datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/"
+nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_clinical_data.csv"))
 nnaostring_metadata$X <- NULL
-meta <- cbind.data.frame("LAA950_whole"=data@phenoData@data[["LAA950_whole"]],
-                         "LAA950_lobe"=data@phenoData@data[["LAA950_lobe"]],
-                         "patient"=data@phenoData@data[["patient_ID"]])
+colnames(nnaostring_metadata)
+meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
+                         "LAA950_lobe"=data[["LAA950_lobe"]],
+                         "patient"=data[["patient_ID"]])
 
 patient_ID <- unique(meta$patient)
 overlap <- intersect(nnaostring_metadata$patient, meta$patient)
@@ -465,7 +386,6 @@ lala <- melt[, c("gold_broad", "status")]
 
 lala <- as.data.frame(table(lala))
 lala$name <- "Gold Broad Category"
-cols <- c("#CD5C5C","#791812")
 cols <-c("#D9B926", "#D02F3B")
 names(cols) <- c("GOLD1-2","GOLD3-4")
 
@@ -496,11 +416,10 @@ ggsave(filename = paste0(plotdir, Sys.Date(),"legend_rev01_postave_COPD_Control_
 
 
 ## violin plot (fig5F) -----------------------------
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_new.csv"))
 nnaostring_metadata$X <- NULL
-meta <- cbind.data.frame("LAA950_whole"=data@phenoData@data[["LAA950_whole"]],
-                         "LAA950_lobe"=data@phenoData@data[["LAA950_lobe"]],
-                         "patient"=data@phenoData@data[["patient_ID"]])
+meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
+                         "LAA950_lobe"=data[["LAA950_lobe"]],
+                         "patient"=data[["patient_ID"]])
 
 patient_ID <- unique(meta$patient)
 overlap <- intersect(nnaostring_metadata$patient, meta$patient)
@@ -579,14 +498,13 @@ save_plot(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_GOLDal
           plot = p_plot, base_height = 5.25, base_width = 3.5, dpi = 600)
 
 ## correlation plots (fig5G) ====
-meta <- cbind.data.frame("LAA950_whole"=data@phenoData@data[["LAA950_whole"]],
-                         "LAA950_lobe"=data@phenoData@data[["LAA950_lobe"]],
-                         "patient"=data@phenoData@data[["patient_ID"]])
+meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
+                         "LAA950_lobe"=data[["LAA950_lobe"]],
+                         "patient"=data[["patient_ID"]])
 
 meta <-unique(meta)
 patient_ID <- unique(meta$patient)
 
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "nanostring_metadata.csv"))
 overlap <- intersect(nnaostring_metadata$patient, meta$patient)
 nnaostring_metadata <- nnaostring_metadata[which(nnaostring_metadata$patient %in% patient_ID),]
 nnaostring_metadata <- nnaostring_metadata[, c("patient","Pack.years" )] #"FEV1.pred", "FEV1.FVC", "Pack.years"
@@ -645,10 +563,6 @@ library(ggplotify)
 library(cowplot)
 legend <- as.ggplot(get_legend(sp))
 legend
-
-ggsave(file = paste0(plotdir, as.character(Sys.Date()),"_", "rev01_postave_COPD_Control_correlation plots_nanostring_median_cibersortx_publication.png"),
-       plot = sp_plot,scale=1,
-       width=20.5, height=6,dpi = 600)
 
 ggsave(file = paste0(plotdir, as.character(Sys.Date()),"_", "corr_rev01_postave_COPD_Control_correlation plots_nanostring_median_cibersortx_publication.png"),
        plot = sp2,scale=1,
