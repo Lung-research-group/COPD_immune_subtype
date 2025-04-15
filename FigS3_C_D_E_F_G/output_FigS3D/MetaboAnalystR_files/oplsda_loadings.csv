@@ -1,0 +1,25 @@
+"","Loading (t1)","OrthoLoading (to1)"
+"Basophils",-0.051657,-0.2785
+"CD19",-0.30028,-0.22717
+"CD3",-0.39907,-0.23104
+"CD4",-0.40423,-0.21424
+"CD45pos_CD203neg_CD117pos",0.0080295,-0.2797
+"CD45pos_CD203pos_CD117pos",-0.10923,-0.20745
+"CD8",-0.34722,-0.2582
+"DC_CD209neg_CD11cposCd1a",0.084414,-0.28595
+"DC_CD209pos_CD11cposCD1a",0.18834,-0.22257
+"gdTCR",-0.14949,-0.25929
+"Macs_CD14hi_CD1anegHLApos",-0.036785,-0.14272
+"Macs_CD14hi_CD1aposHLAneg",0.30022,-0.065666
+"Macs_CD14hi_CD1aposHLApos",0.061726,-0.25685
+"Macs_CD14med_CD1anegHLApos",-0.069775,-0.17548
+"Macs_CD14med_CD1aposHLAneg",0.071646,-0.1463
+"Macs_CD14med_CD1aposHLApos",0.0046566,-0.20513
+"Neutrophils",0.27234,-0.19542
+"NKcells",-0.094365,-0.25821
+"NKT",-0.22023,-0.22957
+"pDC",-0.21611,-0.19814
+"Tregs",-0.2851,-0.068864
+"Mono_clas",0.09551,-0.311
+"Mono_int",0.18637,-0.25577
+"Mono_non",0.13183,-0.29208
