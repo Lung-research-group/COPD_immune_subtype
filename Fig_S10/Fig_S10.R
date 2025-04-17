@@ -1,15 +1,12 @@
-plotdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/output/plots/"
-dataoutputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/output/data/"
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-
+#scRNA--------
 #load the data------------------
 library(ggplot2)
 library(dplyr)
 library(stringr)
 library(Seurat)
 
-#take the filtered data containing only COPD and controls see script Fig3_scRNA.R
-load(paste0(datainputdir, "scRNA_COPD_control.RData"))
+#take the non filtered data containing only COPD and controls see script Fig3_scRNA.R
+load("non_integrated_preprocessessed_scrna_GSE136831.RData")
 
 ##non integration------------
 kaminski_new <- NormalizeData(kaminski_new)
@@ -20,11 +17,11 @@ kaminski_new <- FindNeighbors(kaminski_new, reduction = "pca", dims = 1:30)
 kaminski_new <- RunUMAP(kaminski_new, reduction = "pca", dims = 1:30, 
                         reduction.name = "umap.pca")
 
-plotoutput <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/data_output/"
-load(paste0(plotoutput, "non_integrated_preprocessessed_scrna_GSE136831.RData"))
 
-#metadata ---------------
-load("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig3/input data/metadata.RData")
+
+###metadata ---------------
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+load(file =paste0(dir, "input data/metadata.RData"))
 names(colorsss)[38] <-"Ionocyte"
 df_order$new_name <- paste0("(", df_order$order_num, ")", df_order$species)
 
@@ -103,7 +100,7 @@ merge_color$new_color[which(merge_color$new_name=="(36)VE_Capillary_B" )] <- "#C
 merge_color$new_color[which(merge_color$new_name=="(37)VE_Peribronchial")] <- "#C2B280"
 merge_color$new_color[which(merge_color$new_name=="(38)VE_Venous")] <- "#C2B280"
 
-
+### UMAP non integrated---------------------------------------------------
 colors_dim <- merge_color$new_color
 names(colors_dim) <- merge_color$new_name
 #names(colors_dim) <- merge_color$num_clust
@@ -164,7 +161,9 @@ plotoutput <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/data
 save(kaminski_new, file = paste0(plotoutput, "non_integrated_preprocessessed_scrna_GSE136831.RData"))
 
 ##integration -----------
-load(paste0(datainputdir, "scRNA_COPD_control.RData"))
+#take the filtered data containing only COPD and controls see script Fig3_scRNA.R
+load("scRNA_COPD_control.RData")
+
 kaminski_new[["RNA"]] <- split(kaminski_new[["RNA"]], f = kaminski_new$Subject_Identity)
 library(Seurat)
 kaminski_new <- NormalizeData(kaminski_new)
@@ -177,10 +176,9 @@ kaminski_new <- IntegrateLayers(
   verbose = T
 )
 
-# UMAP ---------------------------------------------------
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-load(paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
-load("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig3/input data/metadata.RData")
+### UMAP integrated---------------------------------------------------
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+load(file =paste0(dir, "input data/metadata.RData"))
 names(colorsss)[38] <-"Ionocyte"
 df_order$new_name <- paste0("(", df_order$order_num, ")", df_order$species)
 
@@ -316,7 +314,6 @@ ggsave(filename = paste0(Sys.Date(),"_","UMAp_scrna_diagnosis_post LG",".png"),
        units = c("in"))
 
 #Spatial transcriptomics -------------
-
 library(GeoMXAnalysisWorkflow)
 library(standR)
 library(GeomxTools)
@@ -327,7 +324,8 @@ library(SpatialExperiment)
 library(SingleCellExperiment)
 
 #1) load the data
-load("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final_revision/Fig_S10/input data/spatial_experiment_parenchyma.RData")
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+load(file =paste0(dir, "input data/spatial_experiment_parenchyma.RData"))
 
 #2) then continue with log transformation for pre batch correction
 spe@assays@data@listData[["log_batch"]] <- log2(spe@assays@data@listData[["batch_corrected"]]) #change count to batch_corrected to check pre and post batch correction

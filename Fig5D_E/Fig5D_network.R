@@ -3,21 +3,16 @@ library(readxl)
 library(ggpubr)
 library(ggplot2)
 library(igraph)
-library(effsize)
 library(reshape2)
 library(dplyr)
+library(tidyr)
 library(stringr)
 library(ggforce)
 library(ggrepel)
-library(ggpp)
-
-#directories 
-plotdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig4H_I/output/plots/"
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig4H_I/input/"
-dataoutputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig4H_I/output/data/"
 
 #prepare the master data 
-final_data <- read.csv(file =paste0(datainputdir,"final_data_revSC_AvsB.csv"))
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+final_data <- read.csv(file =paste0(dir, "input data/final_data_revSC_AvsB.csv"))
 elisa_new <- as.data.frame(final_data) # convert to data frame
 elisa_new <- elisa_new[which(elisa_new$Consensus_subclass %in% c("A", "B")),] # filtered out everything with no information about subclass
 temp <- colnames(elisa_new)# we want to convert to numeric all columns in the data
@@ -34,6 +29,8 @@ clinical <- c("Age","BMI","Smoking_py","CRP",
               "RV_percent","mPAP","DLCOcSB_percent","pO2_mmHg",                  
               "pCO2_mmHg", "Airspace_Enlargement")
 colnames(elisa_new)
+
+#significant parameters based on previous analysis
 sig_parameters <- c("Macs_CD14med_CD1aposHLApos","Macs_CD14hi_CD1aposHLApos",
                     "DC_CD209pos_CD11cposCD1a","DC_CD209neg_CD11cposCd1a",
                     "CD8" , "Mast_CD203pos",
@@ -49,10 +46,10 @@ up_parameter <- c("Macs_CD14med_CD1aposHLApos","Macs_CD14hi_CD1aposHLApos",
                   "IL10_S")
 elisa_new <- elisa_new[which(colnames(elisa_new) %in% sig_parameters)]
 
-#prepare the parameter excel file. 
-parameter <- read_xlsx(file.choose()) # it should be easily found inside the data folder. Here inside the parameter and the corresponding labels
+#prepare the parameter excel file.
+parameter <- read_xlsx(paste0(dir, "input data/parameter_label.xlsx")) # it should be easily found inside the data folder. Here inside the parameter label and the corresponding labels
 
-#calculate fold change (COPD vs DOnor) for each parameter
+#label for parameters
 clinical <- c("Age","BMI","Smoking_py","CRP",
               "FEV1_percent","FVC_percent","FEV1_FVC_percent",          
               "RV_percent","mPAP","DLCOcSB_percent","pO2_mmHg",                  
@@ -126,8 +123,7 @@ temp <- as.data.frame(table(x$from)) # we calculate connections "from". we have 
 colnames(temp)[2] <- "num_of_connection_Var1" # we label the name of connections
 dat <- y[which(y$from %in% temp$Var1),] # filter data, only including the confirmed connections from both x and y (just as double check)
 dat <- merge(dat, temp, by.x="from", by.y="Var1") # attach the rest information
-#write.csv(dat,file = "_COPDvsDonor_revSC_20240216.csv") # save the correlation table, the column "num_of_connection_Var1" later we will remove as it is not representing the true number of connections.
-#in the paper, this data frame is available in the worksheet "networks_COPDvsDonor" 
+
 
 #cluster the parameters using the fast greedy algorithm
 fc <- cluster_fast_greedy(g)# we take the igraph object
@@ -144,7 +140,6 @@ hh <- full_join(a,b, by="Var1")  # we join the information of above a and b
 hh[is.na(hh)] <- 0 # we assign any NAs to 0
 hh$total <- hh$Freq.x+hh$Freq.y # we sum the total number of connections
 fr.all.df <- merge(fr.all.df, hh, by.x="species", by.y="Var1") # and attach this information to metadata
-#write.csv(fr.all.df,file = paste0("_COPDvsDonorinteractions_revSC.csv")) # we save metadata, in the paper this metadata label in the worksheet "correlations_COPDvsDonor"
 
 colnames(parameter)[1] <- "species"
 fr.all.df <- merge(fr.all.df, parameter, by="species")
@@ -180,9 +175,8 @@ theme_journal <- theme(
 x <- x[which(x$corr %in% corr_var),]
 fr.all.df <- fr.all.df[which(fr.all.df$species %in% pmrt),]
 fr.all.df$direction <- NA
-all <- c(up_parameter, down_parameter)
+all <- c(up_parameter)
 fr.all.df$direction[which(fr.all.df$species %in% up_parameter)] <- "up"
-fr.all.df$direction[which(fr.all.df$species %in% down_parameter)] <- "down"
 fr.all.df$direction[-which(fr.all.df$species %in% all)] <- "none"
 plot1 <- ggplot() +
   geom_link(data=x,aes(x=from.x,xend = to.x, y=from.y,yend = to.y, size=weight, linetype=change, alpha=weight),color="black") + # add line type

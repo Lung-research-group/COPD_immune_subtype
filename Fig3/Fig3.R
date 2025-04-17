@@ -1,6 +1,7 @@
 #we will re-analyse the scRNA-seq data GSE136831 
 #download the data ---------
-kaminski_new <- readRDS(file = "/home/isilon/users/o_syarif/COPD machine learning/Rdata/2024-02-16_scrna-v5.rds") #download the file 
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+kaminski_new <- readRDS(paste0(dir, "input data/2024-02-16_scrna-v5.rds")) #download the file 
 ##from GSE136831 https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE136831&format=file
 
 #relabel the immune cells to match FACS cohort
@@ -32,7 +33,7 @@ kaminski_new <- subset(kaminski_new, Disease_Identity=="IPF", invert=T)
 kaminski_new <- subset(kaminski_new, Subject_Identity %in% c("137CO", "152CO"), invert=T)
 
 #save file for downstream analysis
-save(kaminski_new, file="/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/scRNA_COPD_control.RData")
+save(kaminski_new, file=paste0(dir, "input data/scRNA_COPD_control.RData"))
 
 #preprocess the data ---------
 #load the required libraries
@@ -65,15 +66,11 @@ a<-DimPlot(
   label = T, split.by="Disease_Identity")&NoAxes()+
   theme(legend.position = "none")+ggtitle(NULL);a
 
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-save(kaminski_new, file = paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
 
 # Fig 3B UMAP ---------------------------------------------------
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-load(paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
-
 #upload the new metadata for new label and colors
-load("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig3/input data/metadata.RData")
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+load(paste0(dir, "input data/metadata.RData"))
 names(colorsss)[38] <-"Ionocyte"
 df_order$new_name <- paste0("(", df_order$order_num, ")", df_order$species)
 
@@ -180,9 +177,9 @@ library(readxl)
 library(tidyverse)
 
 #load the frequency data
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig2/input/"
+
 #upload the immune cell frequency table 
-scRNA <- paste0(datainputdir, "2024-02-16_cell_freq.xlsx")
+scRNA <- paste0(dir, "input data/2024-02-16_cell_freq.xlsx")
 cell.freq <- read_excel(scRNA, sheet = 1)
 
 annotation_col <- cell.freq %>% 
@@ -232,7 +229,12 @@ colnames(scrna.df) <- case_when(colnames(scrna.df) =="B" ~ "B cells",
 #calculate PCA
 PCA_modelobject <- prcomp(scrna.df, scale=TRUE, center=TRUE)
 summary(PCA_modelobject)
+scrna.df <- cell.freq  %>%  
+  filter(Disease_Identity != "IPF") %>%
+  filter(!Subject_Identity %in% c("137CO", "152CO"))
 
+plotdata_cPCA <- data.frame(PCA_modelobject$x[,1:3])
+plotdata_cPCA$patient <- scrna.df$Subject_Identity
 
 theme_journal <- theme(axis.line.x = element_line(color="black", size = 0.5),
                        axis.line.y = element_line(color="black", size = 0.5))+
@@ -243,7 +245,7 @@ theme_journal <- theme(axis.line.x = element_line(color="black", size = 0.5),
   theme(legend.text = element_text(size = 14))+
   theme(legend.title = element_text(size = 16))
 
-plotdata_cPCA$Disease_Identity <- factor(plotdata_cPCA$Disease_Identity, levels = c("Control","COPD" ))
+plotdata_cPCA$Disease_Identity <- factor(scrna.df$Disease_Identity, levels = c("Control","COPD" ))
 pov <- PCA_modelobject$sdev^2/sum(PCA_modelobject$sdev^2)
 barplot(pov)
 #visualisation
@@ -289,6 +291,9 @@ dev.off()
 ### p1
 names(cell.freq)
 
+man.fill <-   scale_fill_manual(values = c("Donor" = "#757b87", "COPD" = "#791812"))
+man.col <-   scale_color_manual(values = c("Donor" = "#757b87", "COPD" = "#791812"))
+
 p1 <- cell.freq %>% pivot_longer(where(is.numeric)) %>% 
   mutate(name = gsub("NK", "NK cells", name),
          name = gsub("T_", "X_", name),
@@ -297,7 +302,7 @@ p1 <- cell.freq %>% pivot_longer(where(is.numeric)) %>%
          name = gsub("T Regulatory", "Tregs", name),
          name = gsub("cMonocyte", "Classical monocytes", name),
          name = gsub("ncMonocyte", "Non-classical monocytes", name)) %>%
-  
+
   mutate(name = factor(name, 
                        levels = c("B", "B_Plasma",  "T Cytotoxic", "T helper", "Tregs",  "ILC_A", "ILC_B",
                                   "cDC1", "cDC2","DC_Langerhans", "DC_Mature", "pDC", 
@@ -437,8 +442,6 @@ sig.df <- cell.freq %>% pivot_longer(where(is.numeric)) %>%
 
 
 #Fig 3E Dot Plot --------------------
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-load(paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
 library(Seurat)
 kaminski_new <- JoinLayers(kaminski_new)
 detected_cytokines <- c("CCL2", "CCL3", "CCL4","CCL5", "CCL11", "CCL17", "CCL19", "CCL20", "CXCL1", "CXCL5", "CXCL9", "CXCL10",
@@ -480,8 +483,7 @@ dat$gene <- factor(dat$gene, levels = detected_cytokines)
 
 #now we move to the FACS dataset
 #FACS data
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-data_FACS <- read.csv(file = paste0(datainputdir, "FACS_foldchange.csv"))
+data_FACS <- read.csv(file=paste0(dir, "input data/FACS_foldchange.csv"))
 data_FACS$X <- NULL
 
 # add additional line for the dotplot wilcoxon graph
@@ -666,8 +668,6 @@ ggsave(filename = paste0(plotdir, Sys.Date(),"_","dotplots_GSE136831_COPDcontrol
        height =5,
        units = c("in"))
 
-
-
 #Fig 3F interaction plot -------------
 #receptor ligand analysis
 library(dplyr)
@@ -678,16 +678,13 @@ library(Seurat)
 cytokine <- c("CCL5","CXCL9","CXCL10")
 
 #upload data required for the cell frquency
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig2/input/"
 
-scRNA <- paste0(datainputdir, "2024-02-16_cell_freq.xlsx")
+scRNA <- paste0(dir, "input data/2024-02-16_cell_freq.xlsx")
 cell.freq <- read_excel(scRNA, sheet = 1)
 
 #annotation
 color <- c( "darkgrey", "darkred")
 names(color) <-  c("Control","COPD")
-
-
 
 all_cytokines <- c("CCL5","CXCL9","CXCL10")
 
@@ -723,14 +720,12 @@ dg$name <- case_when(dg$name =="B" ~ "B cells",
 
 
 #upload ramilowski LR database 
-ramilwoski <- read.csv(file = "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/ramilowski_LR.csv")
+ramilwoski <- read.csv(file = paste0(dir, "input data/ramilowski_LR.csv"))
 ramilowski_sub <- ramilwoski[which(ramilwoski$ligand %in% all_cytokines),]
 ramilowski_sub <-unique(ramilowski_sub)
 
 #cell cell interaction calculation
 library(Seurat)
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-load(paste0(datainputdir, "scRNA_COPD_control.RData"))
 Idents(kaminski_new) <- kaminski_new$new_ID
 sbset_cell <- c("T cytotoxic", "T helper", "Macrophage", 
                 "Macrophage_Alveolar", "Classical monocytes", 
@@ -748,6 +743,7 @@ df_all <- df_all[which(rownames(df_all) %in% genes),]
 df_all <- as.data.frame(t(df_all))
 df_all <- cbind(df_all, selection$new_ID)
 colnames(df_all)[13] <- "cellannottaion"
+
 #used minimum 1% of expressing cell type to define the interactions
 perc=1 
 perc=perc/100
@@ -838,7 +834,8 @@ merge_xg <- left_join(merge_xr, matgene, by="gg")
 colnames(merge_xg)
 
 #prepare for table of ligand and receptor
-dt_copd <- merge_xg[, c("ligand"       ,    "receptor"    ,     "Receptor_cluster" ,"Lig_cluster" , #change dt_ctrl for control data
+#!!!change dt_ctrl for control data!!!!
+dt_copd <- merge_xg[, c("ligand"       ,    "receptor"    ,     "Receptor_cluster" ,"Lig_cluster" , 
                         "Disease_Identity", "value" , "weight_receptor",  "weight" )]
 colnames(dt_copd) <- c("ligand"       ,    "receptor"    ,     "receptor_cluster" ,"ligand_cluster" ,
                        "diagnosis", "receptor_cluster_proportion" , "receptor_expression",  "ligand_expression" )
@@ -859,7 +856,7 @@ addWorksheet(wa, "RL_copd")
 writeData(wa, sheet = "RL_ctrl", dt_ctrl)
 writeData(wa, sheet = "RL_copd", dt_copd)
 
-saveWorkbook(wa, file = paste0("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/output/RLdata.xlsx"), overwrite = TRUE)
+saveWorkbook(wa, file = paste0(dir, "output data/RLdata.xlsx"), overwrite = TRUE)
 
 #end saving 
 

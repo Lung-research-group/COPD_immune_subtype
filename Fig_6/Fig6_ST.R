@@ -1,52 +1,15 @@
-#we will prepare downsampled matrix for cibersortx
+#we will prepare for cibersortx
 library(dplyr)
 library(reshape2)
 library(Seurat)
 library(stringr)
 library(ggplot2)
 
-#prepare cibersortx reference  from GSE136831----------------------------------------------------
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig3H/input/"
-load(paste0(datainputdir, "scRNA_COPD_control_preprocessed.RData"))
-
-selection_immune <- c("cMonocyte","ncMonocyte", "Macrophage","Macrophage_Alveolar",
-                      "Mast","cDC1","cDC2","DC_Mature","pDC","NK","ILC_A", "ILC_B", "DC_Langerhans",
-                      "B","T_Cytotoxic","T_Regulatory", "B_Plasma", "T")
-
-#subset only to include immune cells
-kaminski_new <- subset(kaminski_new, Manuscript_Identity %in% c(selection_immune))
-
-#filter out ILC and langerhans
-Idents(kaminski_new) <- kaminski_new$new_ID
-
-sc_data <- subset(kaminski_new, Disease_Identity %in% c("Control", "COPD")) #DC langerhans only 19 therefore we excluded them immediately , change to COPD, Control, and COPD and control
-
-table(sc_data$new_ID)
-Idents(sc_data) <- sc_data$new_ID
-temp <- subset(sc_data, downsample=50) #subset 50 cells per celltypes
-
-table(temp$new_ID)
-temp <- JoinLayers(temp)
-dat <- temp@assays[["RNA"]]@layers[["counts"]]
-dat <- as.matrix(dat)
-colnames(dat) <- temp$new_ID
-rownames(dat) <- rownames(temp)
-write.table(dat,"kaminski_sub50percelltype_pooled_COPD_Control.txt",row.names=TRUE,sep="\t", quote = FALSE)
-
 #process the cibersortx results ------------------
-#directories
-plotdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/output/plots/"
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/input/"
-dataoutputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/output/data/"
-
-#upload the data
-cibersort <- read.csv(file = paste0(datainputdir, "CIBERSORTx_Job22_sub50_Control_COPD_15pops_parenchyma_sub.csv"))
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+cibersort <- read.csv(file =paste0(dir, "input data/CIBERSORTx_Job22_sub50_Control_COPD_15pops_parenchyma_sub.csv"))
 
 #filtering out non significant deconvolutions
-library(dplyr)
-library(ggplot2)
-library(reshape2)
-
 pop <- cibersort %>%
   filter(P.value <0.05)
 
@@ -88,11 +51,13 @@ dt <- as.data.frame(sapply(pop, function(num) log10(num+0.001)))
 rownames(dt) <- rownames(pop)
 
 # patient level data  -----------------------------------------
-data <- read.csv(file="/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/metadata_nanostring.csv")
+data <- read.csv(file =paste0(dir, "input data/metadata_nanostring.csv"))
+
 #combine the metadata from original nanostring
 patient <- cbind.data.frame("patient"=data[["patient_ID"]],
-                            "location"=data[["location"]]) # addlocation
-rownames(patient) <- data$X
+                            "location"=data[["location"]],
+                            "ROI"=data[["ROI"]]) # addlocation
+rownames(patient) <- data$ROI
 patient <- patient[which(rownames(patient) %in% rownames(pop)),]
 
 #continue
@@ -117,6 +82,7 @@ merge <- merge(meta, melt, by="patient")
 library(tidyr)
 df <- pivot_wider(merge[, c("patient", "mean", "variable", "gold_broad","emphysema")],
                   names_from = "variable", values_from = "mean")
+df$X <- NULL #remove additional column
 
 #relabel the cells
 colnames(df) <- case_when(colnames(df) == "patient"~ "patient",
@@ -158,7 +124,7 @@ cluster1 <- dd$patient[which(dd[, "cluster"] %in% c(2))]
 include <- c(cluster1, cluster2)
 
 ## bi-plot PCA (fig5B) -----------------------------
-PCA_modelobject <- prcomp(df[which(df$gold_broad %in% c("GOLD1-2","GOLD3-4")),c(4:18)], scale=T, center=T)
+PCA_modelobject <- prcomp(df[,c(4:18)], scale=T, center=T)
 summary(PCA_modelobject)
 
 plotdata_cPCA <- data.frame(PCA_modelobject$x[,1:3])
@@ -224,8 +190,7 @@ ggsave(paste0(plotdir, "ST__cPCA_biplot_PCA_final2.png"),
 dev.off()
 
 ## violin plots (fig5D) =====
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/"
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_clinical_data.csv"))
+nnaostring_metadata <- read.csv(file = paste0(dir, "input data/metadata_clinical_data.csv"))
 nnaostring_metadata$X <- NULL
 meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
                          "LAA950_lobe"=data[["LAA950_lobe"]],
@@ -300,7 +265,8 @@ pop <- c("Mast cells", "Macrophage", "pDC",
 symnum.args <- list(cutpoints = c(0, 0.001, 0.01, 0.05, Inf), symbols = c("***", "**", "*", "ns"))
 
 melt$status <- ifelse(melt$status == "cluster_1", "cluster 1", "cluster 2")
-labelss <- c( "subgroup\n1", "subgroup\n2")
+labelss <- c( "cluster\n1", "cluster\n2")
+
 p <-ggplot(melt, aes(x=status, y=value)) +
   geom_violin(color="white", alpha=0.2, lwd= 1, aes(group=status, fill=status))+
   geom_dotplot(dotsize = 2, binaxis="y", stackdir="center", 
@@ -325,32 +291,9 @@ library(cowplot)
 save_plot(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_GOLDall_ p value_individual analysis_cibersortx_parenchyma_publication",".png"),
           plot =p , base_height = 5.25, base_width = 12.5, dpi = 600)
 
-p <-ggplot(melt[-which(melt$variable %in% c("LAA950_whole", "FEV1.pred","FEV1.FVC", "Pack.years")),], aes(x=status, y=value)) +
-  geom_violin(color="white", alpha=0.2, lwd= 1, aes(group=status, fill=status))+
-  geom_dotplot(dotsize = 2, binaxis="y", stackdir="center", 
-               aes(fill=status)) +
-  stat_compare_means(aes(label = paste0(after_stat(p.signif))), size = 8,  
-                     symnum.args = symnum.args, label.x.npc = "center",
-                     label.y.npc = "top")+
-  scale_y_continuous(expand = expansion(mult = c(0.15, 0.25)))+
-  theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
-  facet_wrap(~variable, scales = "free_y", ncol = 4)+
-  scale_fill_manual(values=color, breaks = names(color))+
-  scale_color_manual(values=color, breaks = names(color))+ xlab("")+
-  scale_x_discrete(label=labelss)+ylab("abundance score\n(LOG transformed)")+
-  theme(strip.text.x = element_text(size = 16),
-        axis.text = element_text(size=16),
-        axis.title.y=element_text(size=16))
-p
-p <- p+theme(legend.position = "none")
-p
-
-save_plot(filename=paste0(plotdir, Sys.Date(),"rev01_postave_COPD_Control_GOLDall_ p value_individual analysis_cibersortx_parenchyma_publication_all",".png"),
-          plot =p , base_height = 5.25*4, base_width = 13, dpi = 600)
 
 ## bar chart (fig5E) -------------------
-datainputdir <- "/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final revision/Fig 6/input data/"
-nnaostring_metadata <- read.csv(file = paste0(datainputdir, "metadata_clinical_data.csv"))
+nnaostring_metadata <- read.csv(file = paste0(dir, "input data/metadata_clinical_data.csv"))
 nnaostring_metadata$X <- NULL
 colnames(nnaostring_metadata)
 meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
@@ -410,6 +353,7 @@ ggsave(filename = paste0(plotdir, Sys.Date(),"legend_rev01_postave_COPD_Control_
 
 
 ## violin plot (fig5F) -----------------------------
+nnaostring_metadata <- read.csv(file = paste0(dir, "input data/metadata_clinical_data.csv"))
 nnaostring_metadata$X <- NULL
 meta <- cbind.data.frame("LAA950_whole"=data[["LAA950_whole"]],
                          "LAA950_lobe"=data[["LAA950_lobe"]],
@@ -466,7 +410,7 @@ t_test_tooth_01 <- filter(t_test_tooth, variable == "LAA950_whole")
 melt$status <- ifelse(melt$status == "cluster_1", "cluster 1", "cluster 2")
 color <- c( "darkred", "salmon")
 names(color) <- c("cluster 1","cluster 2")
-labelss <- c( "subgroup\n1", "subgroup\n2")
+labelss <- c( "cluster\n1", "cluster\n2")
 
 #colored by clusters LAA950
 p2 <-ggplot(melt, aes(x=status, y=value, group=status)) +

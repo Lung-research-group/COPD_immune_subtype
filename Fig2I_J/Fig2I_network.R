@@ -10,48 +10,50 @@ library(stringr)
 library(ggforce)
 library(ggrepel)
 library(ggpp)
+library(ggforce)
 
-#prepare the master data 
-final_data <- read.csv(file =paste0("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final_revision/Fig5D_E/input data/final_data_revSC_AvsB.csv"))
+#rev 01 approach (2) only COPD data --------------------------
+dir <- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/")
+final_data <- read.csv(file =paste0(dir, "input data/final_data_revSC_COPDvsDonor.csv"))
+final_data$Consensus_subclass <- NULL # remove the subclass diagnosis
 elisa_new <- as.data.frame(final_data) # convert to data frame
-elisa_new <- elisa_new[which(elisa_new$Consensus_subclass %in% c("A", "B")),] # filtered out everything with no information about subclass
-temp <- colnames(elisa_new)# we want to convert to numeric all columns in the data
-for (i in temp[!temp %in% c("Diagnosis", "Consensus_subclass")]){
-  elisa_new[,i] <- as.numeric(elisa_new[,i])
-}
-
-elisa_new$CCL5_S <- NULL #we noticed two parameters are empty (all NAs) and it would generate error in the downstream if we keep them. so we remove them.
-elisa_new$TSLP_S <- NULL
-elisa_new$NEFA_S <- NULL
-
+elisa_new <- elisa_new[which(elisa_new$Diagnosis %in% c("COPD")),] #ONLY TAKING PATIENTS WITH IMMUNE PROFILE
 clinical <- c("Age","BMI","Smoking_py","CRP",
               "FEV1_percent","FVC_percent","FEV1_FVC_percent",          
               "RV_percent","mPAP","DLCOcSB_percent","pO2_mmHg",                  
-              "pCO2_mmHg", "Airspace_Enlargement")
-colnames(elisa_new)
-sig_parameters <- c("Macs_CD14med_CD1aposHLApos","Macs_CD14hi_CD1aposHLApos",
-                    "DC_CD209pos_CD11cposCD1a","DC_CD209neg_CD11cposCd1a",
-                    "CD8" , "Mast_CD203pos",
-                    "IL1b_S",
-                    "GM_CSF_S", "IFNb_S","TNFa_S",
-                    "IL10_S",clinical)
+              "pCO2_mmHg")
+sig_parameters <- c("CD19","CD3","CD4","CD8",
+                    "Neutrophils" , "Macs_CD14hi_CD1aposHLAneg",
+                    "Mono_clas","Mono_int", "CCL5_L","CXCL10_L",
+                    "CXCL9_L","IL8_L",
+                    "CXCL1_S","CCL17_S","CCL4_S","IL1b_S",
+                    "CCL2_S","IL10_S","CXCL5_S","CCL5_S",
+                    "IL6_S","CXCL9_S","CXCL10_S",
+                    "TNFb_S","IFN_la2_3_S" ,clinical)
 
-up_parameter <- c("Macs_CD14med_CD1aposHLApos","Macs_CD14hi_CD1aposHLApos",
-                  "DC_CD209pos_CD11cposCD1a","DC_CD209neg_CD11cposCd1a",
-                  "CD8" , "Mast_CD203pos",
-                  "IL1b_S",
-                  "GM_CSF_S", "IFNb_S","TNFa_S",
-                  "IL10_S")
+up_parameter <- c("CD19","CD3","CD4","CD8","CXCL10_L","CXCL1_S","CCL17_S",
+                  "CXCL9_L", "CCL5_L","CCL4_S","IL1b_S", "CCL2_S","IL10_S",
+                  "CXCL5_S","CCL5_S","IL6_S")
+down_parameter <- c("Neutrophils",
+                    "Macs_CD14hi_CD1aposHLAneg",
+                    "Mono_clas","Mono_int", "IL8_L",
+                    "CXCL9_S","CXCL10_S","TNFb_S","IFN_la2_3_S")
 elisa_new <- elisa_new[which(colnames(elisa_new) %in% sig_parameters)]
 
+
+temp <- colnames(elisa_new)# we want to convert to numeric all columns in the data
+for (i in temp[!temp == c("Diagnosis")]){
+  elisa_new[,i] <- as.numeric(elisa_new[,i])
+}
+
 #prepare the parameter excel file. 
-parameter <- read_xlsx("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/script/final_revision/Fig5D_E/input data/parameter_label.xlsx") # it should be easily found inside the data folder. Here inside the parameter and the corresponding labels
+parameter <- read_xlsx(paste0(dir, "input data/parameter_label.xlsx")) # it should be easily found inside the data folder. Here inside the parameter label and the corresponding labels
 
 #calculate fold change (COPD vs DOnor) for each parameter
 clinical <- c("Age","BMI","Smoking_py","CRP",
               "FEV1_percent","FVC_percent","FEV1_FVC_percent",          
               "RV_percent","mPAP","DLCOcSB_percent","pO2_mmHg",                  
-              "pCO2_mmHg", "Airspace_Enlargement")
+              "pCO2_mmHg")
 cells <- c( "Basophils", "CD19","CD3",                       
             "CD4","CD8","DC_CD209neg_CD11cposCd1a",
             "DC_CD209pos_CD11cposCD1a","gdTCR","Macs_CD14hi_CD1anegHLApos",
@@ -121,8 +123,7 @@ temp <- as.data.frame(table(x$from)) # we calculate connections "from". we have 
 colnames(temp)[2] <- "num_of_connection_Var1" # we label the name of connections
 dat <- y[which(y$from %in% temp$Var1),] # filter data, only including the confirmed connections from both x and y (just as double check)
 dat <- merge(dat, temp, by.x="from", by.y="Var1") # attach the rest information
-#write.csv(dat,file = "_COPDvsDonor_revSC_20240216.csv") # save the correlation table, the column "num_of_connection_Var1" later we will remove as it is not representing the true number of connections.
-#in the paper, this data frame is available in the worksheet "networks_COPDvsDonor" 
+
 
 #cluster the parameters using the fast greedy algorithm
 fc <- cluster_fast_greedy(g)# we take the igraph object
@@ -139,7 +140,6 @@ hh <- full_join(a,b, by="Var1")  # we join the information of above a and b
 hh[is.na(hh)] <- 0 # we assign any NAs to 0
 hh$total <- hh$Freq.x+hh$Freq.y # we sum the total number of connections
 fr.all.df <- merge(fr.all.df, hh, by.x="species", by.y="Var1") # and attach this information to metadata
-#write.csv(fr.all.df,file = paste0("_COPDvsDonorinteractions_revSC.csv")) # we save metadata, in the paper this metadata label in the worksheet "correlations_COPDvsDonor"
 
 colnames(parameter)[1] <- "species"
 fr.all.df <- merge(fr.all.df, parameter, by="species")
@@ -199,7 +199,7 @@ plot1 <- ggplot() +
   geom_text_repel(data=fr.all.df,aes(x=V1,y=V2,label=expression), max.overlaps = Inf,parse=T );plot1
 
 plot1
-ggsave(filename = paste0( "rev1_copdsub_sigparameters.png"), 
+ggsave(filename = paste0( "rev1_copd_sigparameters.png"), 
        plot=plot1, width = 8.5, height = 8.5, units = c("in"), dpi = 300, scale = 0.8)
 
 plot1 <- ggplot() +
@@ -214,8 +214,8 @@ plot1 <- ggplot() +
   scale_y_continuous(expand=c(0,4))+ # expand the y limits
   theme_bw()+  # use the ggplot black and white theme
   theme_journal+
-  scale_fill_manual(values=c("darkgreen", "salmon", "orange","lightblue","orchid"), 
-                    breaks=c("1","2","3","4","5"))+
+  scale_fill_manual(values=c("darkgreen", "salmon"), 
+                    breaks=c("1","2"))+
   geom_text_repel(data=fr.all.df,aes(x=V1,y=V2,label=expression),parse=T);plot1
 
 
@@ -224,42 +224,26 @@ plot1 <- ggplot() +
 corr_var_to <- as.character(dp_sig$to[which(dp_sig$pval <= 0.05)])
 corr_var_from <- as.character(dp_sig$from[which(dp_sig$pval <= 0.05)])
 main_effects <- unique(c(corr_var_to, corr_var_from))
-
-final_data <- read.csv(file =paste0(datainputdir,"final_data_revSC_AvsB.csv"))
-elisa_new <- as.data.frame(final_data) # convert to data frame
-elisa_new <- elisa_new[which(elisa_new$Consensus_subclass %in% c("A", "B")),] # filtered out everything with no information about subclass
-temp <- colnames(elisa_new)# we want to convert to numeric all columns in the data
-for (i in temp[!temp %in% c("Diagnosis", "Consensus_subclass")]){
-  elisa_new[,i] <- as.numeric(elisa_new[,i])
-}
-
-elisa_new$CCL5_S <- NULL #we noticed two parameters are empty (all NAs) and it would generate error in the downstream if we keep them. so we remove them.
-elisa_new$TSLP_S <- NULL
-elisa_new$NEFA_S <- NULL
-
-estrogen <- as.matrix(elisa_new[ ,c(main_effects,  "Consensus_subclass")])
+estrogen <- as.matrix(elisa_new[ ,c(main_effects)])
 
 #1)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S", "Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("pO2_mmHg","DC_CD209pos_CD11cposCD1a","Consensus_subclass")]
+df <- mtcars[, c("DLCOcSB_percent","CXCL9_S")]
 df <- na.omit(df)
-df$pO2_mmHg <- as.numeric(df$pO2_mmHg)
-df$DC_CD209pos_CD11cposCD1a <- as.numeric(df$DC_CD209pos_CD11cposCD1a)
+df$DLCOcSB_percent <- as.numeric(df$DLCOcSB_percent)
+df$CXCL9_S <- as.numeric(df$CXCL9_S)
 
-color <- c("#791812",  "#EE4B2B")
-names(color) <-  c("A","B")
-
-a <- ggplot(df, aes(x=DC_CD209pos_CD11cposCD1a, y=pO2_mmHg)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
+a <- ggplot(df, aes(x=CXCL9_S, y=DLCOcSB_percent)) + 
+  geom_point(color="#791812", size=4)+
   geom_smooth(method="lm")+
-  ylab(expression("pO"[2]))+xlab(expression("DC CD209"^"+"~"CD11c"^"+"~"CD1a"))+
+  ylab("DLCOcSB%")+xlab("sCXCL9")+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -268,28 +252,29 @@ a <- ggplot(df, aes(x=DC_CD209pos_CD11cposCD1a, y=pO2_mmHg)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 a_plot <- a+theme(legend.position = "none")
 a_plot
+ggsave(filename = paste0("correlation_COPD_DLCOcSB_sCXCL9.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 #2)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S","Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("pO2_mmHg","Macs_CD14med_CD1aposHLApos","Consensus_subclass")]
+df <- mtcars[, c("FEV1_FVC_percent","CXCL10_L")]
 df <- na.omit(df)
-df$pO2_mmHg <- as.numeric(df$pO2_mmHg)
-df$Macs_CD14med_CD1aposHLApos <- as.numeric(df$Macs_CD14med_CD1aposHLApos)
+df$FEV1_FVC_percent <- as.numeric(df$FEV1_FVC_percent)
+df$CXCL10_L <- as.numeric(df$CXCL10_L)
 
-a <- ggplot(df, aes(x=Macs_CD14med_CD1aposHLApos, y=pO2_mmHg)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
-  geom_smooth(method="lm")+ylab(expression("pO"[2]))+xlab(expression("Macs CD14"^"med"~"CD1a"^"+"~"HLA"^"+"))+
+a <- ggplot(df, aes(x=CXCL10_L, y=FEV1_FVC_percent)) + 
+  geom_point(color="#791812", size=4)+
+  geom_smooth(method="lm")+ylab("FEV1/FVC%")+xlab("CXCL10")+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -298,29 +283,30 @@ a <- ggplot(df, aes(x=Macs_CD14med_CD1aposHLApos, y=pO2_mmHg)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 b_plot <- a+theme(legend.position = "none")
 b_plot
+ggsave(filename = paste0("correlation_COPD_FEVFVC_CXCL10.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 
 #3)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S","Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("pO2_mmHg","Macs_CD14hi_CD1aposHLApos","Consensus_subclass")]
+df <- mtcars[, c("CD8","CXCL9_L")]
 df <- na.omit(df)
-df$Macs_CD14hi_CD1aposHLApos <- as.numeric(df$Macs_CD14hi_CD1aposHLApos)
-df$pO2_mmHg <- as.numeric(df$pO2_mmHg)
+df$CD8 <- as.numeric(df$CD8)
+df$CXCL9_L <- as.numeric(df$CXCL9_L)
 
-a <- ggplot(df, aes(x=Macs_CD14hi_CD1aposHLApos, y=pO2_mmHg)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
-  geom_smooth(method="lm")+ylab(expression("pO"[2]))+xlab("Macs CD14"^"hi"~"CD1a"^"+"~"HLA"^"+")+
+a <- ggplot(df, aes(x=CXCL9_L, y=CD8)) + 
+  geom_point(color="#791812", size=4)+
+  geom_smooth(method="lm")+ylab(expression("T cytotoxic"))+xlab("CXCL9")+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -329,28 +315,29 @@ a <- ggplot(df, aes(x=Macs_CD14hi_CD1aposHLApos, y=pO2_mmHg)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 c_plot <- a+theme(legend.position = "none")
 c_plot
+ggsave(filename = paste0("correlation_COPD_CD8_CXCL9.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 #4)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S","Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("IL1b_S","Macs_CD14med_CD1aposHLApos","Consensus_subclass")]
+df <- mtcars[, c("pCO2_mmHg","CD8")]
 df <- na.omit(df)
-df$Macs_CD14med_CD1aposHLApos <- as.numeric(df$Macs_CD14med_CD1aposHLApos)
-df$IL1b_S <- as.numeric(df$IL1b_S)
+df$CD8 <- as.numeric(df$CD8)
+df$pCO2_mmHg <- as.numeric(df$pCO2_mmHg)
 
-a <- ggplot(df, aes(x=Macs_CD14med_CD1aposHLApos, y=IL1b_S)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
-  geom_smooth(method="lm")+xlab(expression("Macs CD14"^"med"~"CD1a"^"+"~"HLA"^"+"))+ylab(expression("sIL-1"*beta))+
+a <- ggplot(df, aes(x=CD8, y=pCO2_mmHg)) + 
+  geom_point(color="#791812", size=4)+
+  geom_smooth(method="lm")+xlab(expression("T cytotoxic"))+ylab(expression("pCO"[2]))+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -359,29 +346,30 @@ a <- ggplot(df, aes(x=Macs_CD14med_CD1aposHLApos, y=IL1b_S)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 d_plot <- a+theme(legend.position = "none")
 d_plot
+ggsave(filename = paste0("correlation_COPD_CD8_pCO2.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 
 #5)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S","Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("IL1b_S","DC_CD209neg_CD11cposCd1a","Consensus_subclass")]
+df <- mtcars[, c("FEV1_percent","Mono_int")]
 df <- na.omit(df)
-df$IL1b_S <- as.numeric(df$IL1b_S)
-df$DC_CD209neg_CD11cposCd1a <- as.numeric(df$DC_CD209neg_CD11cposCd1a)
+df$FEV1_percent <- as.numeric(df$FEV1_percent)
+df$Mono_int <- as.numeric(df$Mono_int)
 
-a <- ggplot(df, aes(x=DC_CD209neg_CD11cposCd1a, y=IL1b_S)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
-  geom_smooth(method="lm")+xlab(expression("DC CD209"^"-"~"CD11c"^"+"~"CD1a"))+ylab(expression("sIL-1"*beta))+
+a <- ggplot(df, aes(x=Mono_int, y=FEV1_percent)) + 
+  geom_point(color="#791812", size=4)+
+  geom_smooth(method="lm")+xlab(expression("Monocytes intermediate"))+ylab(expression("FEV1%"))+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -390,29 +378,29 @@ a <- ggplot(df, aes(x=DC_CD209neg_CD11cposCd1a, y=IL1b_S)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 e_plot <- a+theme(legend.position = "none")
 e_plot
-
+ggsave(filename = paste0("correlation_COPD_mono_int_FEV.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 #6)
-parameters <- c("pO2_mmHg","DC_CD209pos_CD11cposCD1a", 
-                "pO2_mmHg","Macs_CD14med_CD1aposHLApos",
-                "pO2_mmHg","Macs_CD14hi_CD1aposHLApos", 
-                "IL1b_S", "Macs_CD14med_CD1aposHLApos",
-                "IL1b_S", "DC_CD209neg_CD11cposCd1a",
-                "FEV1_percent","IL1b_S","Consensus_subclass")
+parameters <- c("DLCOcSB_percent","CXCL9_S", 
+                "CXCL10_L","FEV1_FVC_percent",
+                "CXCL9_L","CD8", 
+                "pCO2_mmHg", "CD8",
+                "FEV1_percent", "Mono_int",
+                "TNFb_S","CD8")
 
 mtcars <- as.data.frame(estrogen[,which(colnames(estrogen) %in% parameters)])
-df <- mtcars[, c("FEV1_percent","IL1b_S","Consensus_subclass")]
+df <- mtcars[, c("CD8","TNFb_S")]
 df <- na.omit(df)
-df$IL1b_S <- as.numeric(df$IL1b_S)
-df$FEV1_percent <- as.numeric(df$FEV1_percent)
+df$CD8 <- as.numeric(df$CD8)
+df$TNFb_S <- as.numeric(df$TNFb_S)
 
-a <- ggplot(df, aes(x=IL1b_S, y=FEV1_percent)) + 
-  geom_point(aes(color=Consensus_subclass), size=4)+
-  geom_smooth(method="lm")+xlab(expression("sIL-1"*beta))+ylab(expression("FEV1%"))+
+a <- ggplot(df, aes(x=TNFb_S, y=CD8)) + 
+  geom_point(color="#791812", size=4)+
+  geom_smooth(method="lm")+xlab(expression("sTNF-"*beta))+ylab(expression("CD8"^"+"))+
   theme(strip.text.x = element_text(size = 18),
         axis.text.x = element_text(size = 18, angle = 0, hjust = 1, vjust = 1),
         axis.text.y = element_text(size = 18),
@@ -421,17 +409,16 @@ a <- ggplot(df, aes(x=IL1b_S, y=FEV1_percent)) +
         legend.text = element_text(size = 18),
         text = element_text(size = 18))+ggtitle("")+
   theme_bw(base_size = 18)+
-  scale_color_manual(values = color, breaks = names(color))+
   theme(text=element_text(size=18,  family="Arial"))#+expand_limits(y = 0)
 f_plot <- a+theme(legend.position = "none")
 f_plot
-
+ggsave(filename = paste0("correlation_TNFb_CD8_FEV.png"), 
+       plot=a_plot, width = 4, height = 4, units = c("in"), dpi = 300, scale = 1)
 
 c_plot
-p2 <- ( a_plot|b_plot|c_plot|d_plot|e_plot|f_plot) + 
-  patchwork::plot_layout(widths = c(3,3,3,3,3,3));p2
-ggsave(file = "multipanel_COPDsub.png",plot=p2,device = "png",scale=0.9,
-       width=30, height=5.2,dpi = 600,units = c("in"))
+p2 <- ( b_plot|d_plot|e_plot|c_plot) + patchwork::plot_layout(widths = c(3,3,3,3));p2
+ggsave(file = "multipanel_corrplots.png",plot=p2,device = "png",scale=0.9,
+       width=20, height=5.2,dpi = 600,units = c("in"))
 
 
 #save the table ----------
@@ -445,5 +432,5 @@ addWorksheet(wa, "network_Rcorr")
 writeData(wa, sheet = "network_pval", dp_sig)
 writeData(wa, sheet = "network_Rcorr", x)
 
-saveWorkbook(wa, file = paste0("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/output/networkdata_subtype.xlsx"), overwrite = TRUE)
+saveWorkbook(wa, file = paste0("/home/isilon/users/o_syarif/COPD machine learning/COPD_paper/Fig5/revision_iScience/output/networkdata.xlsx"), overwrite = TRUE)
 
