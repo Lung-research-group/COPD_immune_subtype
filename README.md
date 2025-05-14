@@ -56,7 +56,7 @@ The raw data used for the Flow Cytometry and Cytokine analyses have been deposit
 ## Get started
 
 If you want to reproduce the figures presented in the paper, it is recommended to do the following steps:
-1. Downlaod ZIP file by navigating to the repository (https://github.com/Lung-research-group/COPD_immune_subtype), and click the “Code” button, and “Download ZIP”, **or**
+1. Downlaod ZIP file by navigating to the repository (https://github.com/Lung-research-group/COPD_immune_subtype), click the “Code” button, and “Download ZIP”, **or**
 2. Clone the GitHub by typing the following command line in the terminal: git clone https://github.com/Lung-research-group/COPD_immune_subtype.git
 
 
