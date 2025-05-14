@@ -5,6 +5,8 @@ Natalie Bordag<sup>§</sup>, Katharina Jandl<sup>§</sup>, Ayu Hutami Syarif<sup
 § These authors contributed equally to the work and are listed alphabetically  
 $ Corresponding author
 
+<p align="center"><img src="/COPD_graphical_abstract.pdf" height="500" width=900"></p>
+
 ## Description
 This repository contains the R codes used to generate all the figures in the article *Machine Learning-Assisted Multimodal Analysis Identifies an Immune-Driven COPD Subtype Associated with Increased Emphysema Across GOLD Stages*
 
