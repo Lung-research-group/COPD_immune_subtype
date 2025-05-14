@@ -56,12 +56,8 @@ The raw data used for the Flow Cytometry and Cytokine analyses have been deposit
 ## Get started
 
 If you want to reproduce the figures presented in the paper, it is recommended to do the following steps:
-
-1. Move the `semla_analysis` folder and content to another location (this analysis path has its own R project file and package requirements)  
-2. Download the spaceranger output data and/or STUtility/Seurat objects and place them in their correct locations (see `data/README.txt`)  
-3. Install [`renv`](https://rstudio.github.io/renv/articles/renv.html) and install the necessary packages from the `renv.lock` file by using `renv::restore()`
-4. Manually install the packages within the `bin/` folder(s) and [STUtility v. 1.1.1](https://github.com/jbergenstrahle/STUtility/releases/tag/1.1.1)  
-5. Read the `scripts/README.txt` for information about all scripts and their content
+1. Downlaod ZIP file by navigating to the repository (https://github.com/Lung-research-group/COPD_immune_subtype), and click the “Code” button, and “Download ZIP”, **or**
+2. Clone the GitHub by typing the following command line in the terminal: git clone https://github.com/Lung-research-group/COPD_immune_subtype.git
 
 
 ## Contact
