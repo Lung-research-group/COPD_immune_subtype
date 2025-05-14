@@ -55,7 +55,7 @@ The raw data used for the Flow Cytometry and Cytokine analyses have been deposit
   
 ## Get started
 
-If you want to reproduce some of the figures presented in the paper, it is recommended to do the following steps:
+If you want to reproduce the figures presented in the paper, it is recommended to do the following steps:
 
 1. Move the `semla_analysis` folder and content to another location (this analysis path has its own R project file and package requirements)  
 2. Download the spaceranger output data and/or STUtility/Seurat objects and place them in their correct locations (see `data/README.txt`)  
