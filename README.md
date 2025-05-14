@@ -26,36 +26,36 @@ The raw data used for the Flow Cytometry and Cytokine analyses have been deposit
     * `input data/`: Input tables to load into R codes (Fig3_COPD.R)
 * `Figure 4/`: Scripts and pre-processed data to reproduce Figure 4
     * `Fig4Bdown/`
-      *`input data/`: Input tables to load into R codes (R_Fig4Bdown_OPLSDA_Scores_plot.r, R_Fig4_COPD_subclass.r)
+      * `input data/`: Input tables to load into R codes (R_Fig4Bdown_OPLSDA_Scores_plot.r, R_Fig4_COPD_subclass.r)
     * `Fig4Cdown-4D/`
-      *`input data/`: Input tables to load into R codes (R_Fig4Cdown_OPLSDA_Scores_plot.r, R_Fig4D_Heatmap.r)
+      * `input data/`: Input tables to load into R codes (R_Fig4Cdown_OPLSDA_Scores_plot.r, R_Fig4D_Heatmap.r)
     * `iScience_input_data/`: Input tables to load into R codes (Fig4B-4C top.R, Fig4E-4F-4G-5B_COPD.R) 
 * `Figure 5/`: Scripts and pre-processed data to reproduce Figure 5
     * `Fig5C/`
-      *`input data/`: Input tables to load into R codes (R_Fig5C_Heatmap.r)
+      * `input data/`: Input tables to load into R codes (R_Fig5C_Heatmap.r)
     * `Fig5D_E/`
-      *`input data/`: Input tables to load into R codes (Fig5D_network.R)
+      * `input data/`: Input tables to load into R codes (Fig5D_network.R)
     * `iScience_input_data/`: Input tables to load into R codes (Fig4E-4F-4G-5B_COPD.R)
 * `Figure 6/`: Scripts and pre-processed data to reproduce Figure 6
-    *`input data/`: Input tables to load into R codes (Fig6_ST.R)
+    * `input data/`: Input tables to load into R codes (Fig6_ST.R)
 * `Figure S10/`: Scripts and pre-processed data to reproduce Figure S10
-    *`iScience_input_data/`: Input tables to load into R codes (Fig_S10.R)
+    * `iScience_input_data/`: Input tables to load into R codes (Fig_S10.R)
 * `Figure S11_S12/`: Scripts and pre-processed data to reproduce Figure S11-12
-    *`input data/`: Input tables to load into R codes (Fig_S11_S12.R)
+    * `input data/`: Input tables to load into R codes (Fig_S11_S12.R)
 * `Figure S3/`: Scripts and pre-processed data to reproduce Figure S3
-    *`iScience_input_data/`: Input tables to load into R codes (FigS3_COPD.R)
+    * `iScience_input_data/`: Input tables to load into R codes (FigS3_COPD.R)
 * `Figure S6-S7-S8/`: Scripts and pre-processed data to reproduce Figure S3, S6, S8
-    *`iScience_input_data/`: Input tables to load into R codes (Fig2-S6-S7-S8_COPD.R)
+    * `iScience_input_data/`: Input tables to load into R codes (Fig2-S6-S7-S8_COPD.R)
 * `Input Data Files/`: all input data tables to recreate figures
-    *`FACS/`: Input tables for flow cytometry analysis
-    *`GeoMx/`: Input tables for spatial transcriptomics analysis
-    *`scRNA/`: Input tables for scRNA-seq analysis
+    * `FACS/`: Input tables for flow cytometry analysis
+    * `GeoMx/`: Input tables for spatial transcriptomics analysis
+    * `scRNA/`: Input tables for scRNA-seq analysis
 * `Metadata/`: Metadata of individual cohorts
 
   
 ## Get started
 
-If you want to reproduce some of the figures presented here, it is recommended to do the following steps:
+If you want to reproduce some of the figures presented in the paper, it is recommended to do the following steps:
 
 1. Move the `semla_analysis` folder and content to another location (this analysis path has its own R project file and package requirements)  
 2. Download the spaceranger output data and/or STUtility/Seurat objects and place them in their correct locations (see `data/README.txt`)  
