@@ -51,4 +51,4 @@ For details on the analysis steps, please see the overview schematic flowcharts 
 
 ## Contact
 
-For questions related to this repo and its content, please contact Lovisa Franzén (lovisa.franzen@scilifelab.se)
+For further questions related to this repository, its content, and the paper, please contact Leigh M. Marsh (Leigh.Marsh@medunigraz.at) Telephone: +43 316 385 72911
