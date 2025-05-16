@@ -11,7 +11,7 @@ $ Corresponding author
 ## Description
 This repository contains the R codes used to generate all the figures in the article *Machine Learning-Assisted Multimodal Analysis Identifies an Immune-Driven COPD Subtype Associated with Increased Emphysema Across GOLD Stages*
 
-The raw data used for the Flow Cytometry and Cytokine analyses have been deposited to Mendeley Data (human FACS data, accession number [XXXXX]). The raw data for scRNA-seq  were generated from control and COPD lungs, published by [Sauler et al. (2022)] (https://doi.org/10.1038/s41467-022-28062-9) (GEO accession: GSE136831). The raw data for spatial transcriptomics were produced from  GOLD1-2 and GOLD 3-4 COPD lungs, published by Polverino, et al (GEO accession: XXX). 
+The raw data used for the Flow Cytometry and Cytokine analyses have been deposited to Mendeley Data (human FACS data, accession number [XXXXX]). The raw data for scRNA-seq  were generated from control and COPD lungs, published by [Sauler et al. (2022)] (https://doi.org/10.1038/s41467-022-28062-9) (GEO accession: GSE136831). The raw data for spatial transcriptomics were produced from  GOLD1-2 and GOLD 3-4 COPD lungs, published by Polverino, et al (GEO accession: GSE282993). These data are currently under embargo until March 26, 2027.
 
 ## Content
 
@@ -56,7 +56,7 @@ The raw data used for the Flow Cytometry and Cytokine analyses have been deposit
 ## Get started
 
 If you want to reproduce the figures presented in the paper, it is recommended to do the following steps:
-1. Downlaod ZIP file by navigating to the repository (https://github.com/Lung-research-group/COPD_immune_subtype), click the “Code” button, and “Download ZIP”, **or**
+1. Download ZIP file by navigating to the repository (https://github.com/Lung-research-group/COPD_immune_subtype), click the “Code” button, and “Download ZIP”, **or**
 2. Clone the GitHub by typing the following command line in the terminal: `git clone https://github.com/Lung-research-group/COPD_immune_subtype.git`
 
 
