@@ -11,7 +11,7 @@ $ Corresponding author
 ## Description
 This repository contains the R codes used to generate all the figures in the article *Machine Learning-Assisted Multimodal Analysis Identifies an Immune-Driven COPD Subtype Associated with Increased Emphysema Across GOLD Stages*
 
-The raw data used for the Flow Cytometry and Cytokine analyses have been deposited to Mendeley Data (human FACS data, accession number [XXXXX]). The raw data for scRNA-seq  were generated from control and COPD lungs, published by [Sauler et al. (2022)] (https://doi.org/10.1038/s41467-022-28062-9) (GEO accession: GSE136831). The raw data for spatial transcriptomics were produced from  GOLD1-2 and GOLD 3-4 COPD lungs, published by Polverino, et al (GEO accession: GSE282993). These data are currently under embargo until March 26, 2027.
+The raw data used for the Flow Cytometry and Cytokine analyses have been deposited to Mendeley Data (human FACS data, accession number [XXXXX]). The raw data for scRNA-seq  were generated from control and COPD lungs, published by [Sauler et al. (2022)] (https://doi.org/10.1038/s41467-022-28062-9) (GEO accession: GSE136831). The raw data for spatial transcriptomics were produced from  GOLD1-2 and GOLD 3-4 COPD lungs, published by Polverino, et al (GEO accession: GSE282993). This data is currently under embargo until March 26, 2027.
 
 ## Content
 
