@@ -1,8 +1,8 @@
 # *Machine Learning-Assisted Multimodal Analysis Identifies an Immune-Driven COPD Subtype Associated with Increased Emphysema Across GOLD Stages*
 
-Natalie Bordag<sup>§</sup>, Katharina Jandl<sup>§</sup>, Ayu Hutami Syarif<sup>§</sup>, Jürgen Gindlhuber, Diana Schnoegl, Ayse Ceren Mutgan, Vasile Foris, Konrad Hoetzenecker, Panja M. Boehm, Robab Breyer-Kohansal, Katarina Zeder, Gregor Gorkiewicz, Francesca Polverino, Slaven Crnkovic, Grazyna Kwapiszewska, Leigh M. Marsh<sup>$</sup>
+Natalie Bordag<sup>*</sup>, Katharina Jandl<sup>*</sup>, Ayu Hutami Syarif<sup>*</sup>, Jürgen Gindlhuber, Diana Schnoegl, Ayse Ceren Mutgan, Vasile Foris, Konrad Hoetzenecker, Panja M. Boehm, Robab Breyer-Kohansal, Katarina Zeder, Gregor Gorkiewicz, Francesca Polverino, Slaven Crnkovic, Grazyna Kwapiszewska, Leigh M. Marsh<sup>$</sup>
 
-§ These authors contributed equally to the work and are listed alphabetically  
+* These authors contributed equally to the work and are listed alphabetically  
 $ Corresponding author
 
 
