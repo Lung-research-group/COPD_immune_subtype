@@ -8,6 +8,7 @@ Natalie Bordag<sup>&</sup>, Katharina Jandl<sup>&</sup>, Ayu Hutami Syarif<sup>&
 <sup>&</sup>These authors contributed equally to the work and are listed alphabetically  
 <sup>$</sup>Corresponding author
 
+iScience (2025). DOI: 10.1016/j.isci.2025.112966
 
 <p align="center"><img src="/COPD_graphical_abstract.jpg" height="700" width=900"></p>
 
