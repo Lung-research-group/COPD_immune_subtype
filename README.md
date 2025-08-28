@@ -1,4 +1,5 @@
 [![Mendeley Data](https://badgen.net/static/Mendeley%20Data/10.17632%2F5f5k6dhgh5.1/red?.svg)](https://data.mendeley.com/preview/5f5k6dhgh5?a=8e9cc8c2-4e0d-4f2d-94ea-c921ec55c209)
+[![Publication](https://badgen.net/#static/Publication/10.1016%2Fj.isci.2025.112966/blue?.svg)](https://data.mendeley.com/preview/5f5k6dhgh5?a=8e9cc8c2-4e0d-4f2d-94ea-c921ec55c209)
 
 # *Machine Learning-Assisted Multimodal Analysis Identifies an Immune-Driven COPD Subtype Associated with Increased Emphysema Across GOLD Stages*
 
